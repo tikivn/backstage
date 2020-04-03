@@ -1,0 +1,53 @@
+config:
+  dev_branch_name: dev
+  slack_channel: duc_an_ci
+  slack_notify: true
+deployment_config:
+  prod:
+    ingress:
+      hosts:
+      - host: backstage.tiki.services.tiki.services
+        paths:
+        - path: /
+          port: 80
+  uat:
+    ingress:
+      hosts:
+      - host: backstage.tiki.services.dev.tiki.services
+        paths:
+        - path: /
+          port: 80
+jobs:
+  build_docker:
+    steps:
+    - build_image
+  deploy_dev:
+    steps:
+    - deploy_dev:
+        has_worker: 'no'
+        namespace: operations
+        spinnaker_pipeline: generic-v2
+        workload: backstage
+  publish_docker:
+    steps:
+    - push_image
+version: 2
+workflows:
+  jenkins_pipeline:
+    jobs:
+    - build_docker
+    - publish_docker:
+        filters:
+          branches:
+            only:
+            - master
+            - dev
+        requires:
+        - build_docker
+    - deploy_dev:
+        filters:
+          branches:
+            only:
+            - dev
+        requires:
+        - publish_docker
